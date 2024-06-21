@@ -1,7 +1,11 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using NZWalks.Api.Data;
 using NZWalks.Api.Repositories;
+using System.Text;
 
 internal class Program
 {
@@ -27,7 +31,22 @@ internal class Program
         builder.Services.AddScoped<IRegionRepository, RegionRepository>();
         builder.Services.AddScoped<IWalkRepository, WalkRepository>();
         builder.Services.AddScoped<IWalkDifficultyRepository, WalkDifficultyRepository>();
+        builder.Services.AddSingleton<IUserRepository, StaticUserRepository>();
         builder.Services.AddAutoMapper(typeof(Program).Assembly);
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+                IssuerSigningKey= new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:key"]))
+
+            }) ; 
+        ;
 
         var app = builder.Build();
 
@@ -39,6 +58,7 @@ internal class Program
         }
 
         app.UseHttpsRedirection();
+        app.UseAuthentication();
 
         app.UseAuthorization();
 

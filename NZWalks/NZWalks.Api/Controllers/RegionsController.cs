@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NZWalks.Api.Models.Domain;
 using NZWalks.Api.Models.DTO;
@@ -9,6 +10,7 @@ namespace NZWalks.Api.Controllers
 {
     [ApiController]
     [Route("[controller]")]
+  //  [Authorize]
     public class RegionsController : Controller
     {
         private readonly IRegionRepository regionRepository;
@@ -61,11 +63,18 @@ namespace NZWalks.Api.Controllers
 
         }
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> AddRegionAsync(Models.DTO.AddRegionRequest addRegionRequest)
         {
             // request(DTO) to Domanin
+            if(!ValidateAddRegionAsync(addRegionRequest))
+            {
+                return BadRequest();
+            }
             var region = new Models.Domain.Region()
             {
+                // validate 
+
                 Code = addRegionRequest.Code,
                 Name = addRegionRequest.Name,
                 Area = addRegionRequest.Area,
@@ -92,6 +101,7 @@ namespace NZWalks.Api.Controllers
         }
         [HttpDelete]
         [Route("{id:guid}")]
+        [Authorize]
         public async Task<IActionResult> DeleteRegionAsync( Guid id )
         {
             //Get region for the database 
@@ -117,9 +127,11 @@ namespace NZWalks.Api.Controllers
         }
         [HttpPut]
         [Route("{id:guid}")]
+        [Authorize]
         public async Task<IActionResult> UpdateRegionAsync([FromRoute] Guid id, [FromBody] UpdateRegionRequest updateRegionRequest)
         {
             // Convert DTO to Domain
+          
 
             var region = new Models.Domain.Region()
             {
@@ -155,8 +167,56 @@ namespace NZWalks.Api.Controllers
 
             // return ok 
         }
-        
+        #region Private methods
+        private bool ValidateAddRegionAsync(Models.DTO.AddRegionRequest addRegionRequest)
+        {
+            if(addRegionRequest == null)
+            {
+                ModelState.AddModelError(nameof(addRegionRequest.Code),
+                   $"Add Region is required");
+                return false;
+            }
+            if(string.IsNullOrWhiteSpace(addRegionRequest.Code))
+            {
+                ModelState.AddModelError(nameof(addRegionRequest.Code),
+                    $"{nameof(addRegionRequest.Code)} cannot be null oe Empty or whitespace.");
+            }
+            if (string.IsNullOrWhiteSpace(addRegionRequest.Name))
+            {
+                ModelState.AddModelError(nameof(addRegionRequest.Name),
+                    $"{nameof(addRegionRequest.Name)} cannot be null oe Empty or whitespace.");
+            }
+            {
+                if(string.IsNullOrWhiteSpace(addRegionRequest.Area))
+                ModelState.AddModelError(nameof(addRegionRequest.Area),
+                    $"{nameof(addRegionRequest.Area)} cannot be lessthan or equal .");
+
+            }
+            if (addRegionRequest.Latitude<= 0)
+            {
+                ModelState.AddModelError(nameof(addRegionRequest.Latitude),
+                    $"{nameof(addRegionRequest.Latitude)} cannot be lessthan or equal .");
+
+            }
+            if (addRegionRequest.Longitude <= 0)
+            {
+                ModelState.AddModelError(nameof(addRegionRequest.Longitude),
+                    $"{nameof(addRegionRequest.Longitude)} cannot be lessthan or equal .");
+
+            }
+            if(ModelState.ErrorCount>0)
+            {
+                return false;
+            }
+            return true;
+
+
+        }
+
+
+        #endregion
 
 
     }
 }
+
